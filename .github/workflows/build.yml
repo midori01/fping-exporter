@@ -6,8 +6,8 @@ on:
       - 'v*'
 
 jobs:
-  build-and-upload:
-    name: Build, Compress, and Upload Binaries
+  build-and-release:
+    name: Build and Release
     runs-on: ubuntu-latest
 
     strategy:
@@ -28,16 +28,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y upx
 
-      - name: Build static binary
+      - name: Build Binary
         run: |
+          VERSION="v$(git describe --tags --always)"
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date +%Y-%m-%dT%H:%M:%S)
+          
           mkdir -p build
-          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o build/fping-exporter-linux-${{ matrix.goarch }}
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'main.buildVersion=${VERSION}' -X 'main.buildCommit=${COMMIT_HASH}' -X 'main.buildDate=${BUILD_DATE}' -s -w" -o build/fping-exporter-linux-${{ matrix.goarch }}
 
-      - name: Compress binary with UPX
+      - name: Compress Binary
         run: |
           upx --best build/fping-exporter-linux-${{ matrix.goarch }}
 
-      - name: Upload binaries to GitHub Release
+      - name: Upload Binaries to GitHub Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
