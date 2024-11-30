@@ -30,7 +30,7 @@ jobs:
 
       - name: Build Binary
         run: |
-          VERSION="v$(git describe --tags --always)"
+          VERSION="$(git describe --tags --always | sed 's/^v//')"
           COMMIT_HASH=$(git rev-parse --short HEAD)
           BUILD_DATE=$(date +%Y-%m-%dT%H:%M:%S)
           
