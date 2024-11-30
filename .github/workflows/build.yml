@@ -6,19 +6,17 @@ on:
       - 'v*'
 
 jobs:
-  build:
-    name: Build and Publish Binaries
+  build-and-upload:
+    name: Build and Upload Binaries
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        goos: [linux]
         goarch: [amd64, arm64]
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
@@ -27,38 +25,11 @@ jobs:
       - name: Build binary
         run: |
           mkdir -p build
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/fping-exporter-${{ matrix.goos }}-${{ matrix.goarch }}
+          GOOS=linux GOARCH=${{ matrix.goarch }} go build -o build/fping-exporter-linux-${{ matrix.goarch }}
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload binaries to GitHub Release
+        uses: svenstaro/upload-release-action@v2
         with:
-          name: fping-exporter-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: build/fping-exporter-${{ matrix.goos }}-${{ matrix.goarch }}
-
-  release:
-    name: Create Release
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v3
-        with:
-          path: build
-
-      - name: Create GitHub Release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: |
-            build/fping-exporter-linux-amd64
-            build/fping-exporter-linux-arm64
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          body: |
-            Automatic release for version ${{ github.ref_name }}.
-          draft: false
-          prerelease: false
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: build/fping-exporter-linux-${{ matrix.goarch }}
+          asset_name: fping-exporter-linux-${{ matrix.goarch }}
