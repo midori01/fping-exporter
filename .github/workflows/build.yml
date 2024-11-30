@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-upload:
-    name: Build and Upload Binaries
+    name: Build, Compress, and Upload Binaries
     runs-on: ubuntu-latest
 
     strategy:
@@ -17,15 +17,25 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+        
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: 1.21
 
-      - name: Build binary
+      - name: Install UPX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y upx
+
+      - name: Build static binary
         run: |
           mkdir -p build
-          GOOS=linux GOARCH=${{ matrix.goarch }} go build -o build/fping-exporter-linux-${{ matrix.goarch }}
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o build/fping-exporter-linux-${{ matrix.goarch }}
+
+      - name: Compress binary with UPX
+        run: |
+          upx --best build/fping-exporter-linux-${{ matrix.goarch }}
 
       - name: Upload binaries to GitHub Release
         uses: svenstaro/upload-release-action@v2
